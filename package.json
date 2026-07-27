@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "description": "Shared device, USB serial protocol and firmware-update core for DWM V2 power meters. Pure Node.js - no Electron, no DOM.",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "author": "SteamingCoax",
   "type": "commonjs",
   "main": "src/index.js",
   "files": [
     "src/",
+    "dist/",
     "README.md"
   ],
   "engines": {
@@ -22,9 +23,14 @@
     "test": "node test/run.js",
     "test:unit": "node test/run.js --unit",
     "test:live": "node test/run.js --live",
-    "example": "node examples/basic-cli.js"
+    "example": "node examples/basic-cli.js",
+    "build": "node scripts/build-browser.js",
+    "prepare": "node scripts/build-browser.js"
   },
   "dependencies": {
     "serialport": "^12.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
   }
 }

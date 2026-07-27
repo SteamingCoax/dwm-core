@@ -252,7 +252,7 @@ receives over IPC, for example):
 ```js
 const { protocol } = require('dwm-core');
 
-protocol.buildFrame('pwr.get', { met: 'avg' }, { req: 42, version: '2' });
+protocol.buildFrame('pwr.get', 42, { met: 'avg' }, '2');
 protocol.parseFrame('proto=2 type=rsp req=42 value=8.027');
 protocol.decodeSnapshot(frame);
 protocol.normalizeRange('1');
