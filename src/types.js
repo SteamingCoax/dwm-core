@@ -39,6 +39,40 @@ const DEFAULT_PACING_MS = 100;
 /** Default snapshot polling interval, in milliseconds. */
 const DEFAULT_POLL_INTERVAL_MS = 250;
 
+/**
+ * Per-command timeout overrides, in milliseconds.
+ *
+ * Some commands cannot meet the default deadline on every meter, so the
+ * original application gave them their own budgets. Those values are preserved
+ * here rather than in the caller, so every consumer inherits them:
+ *
+ * - `sys.fw` can be slow to answer on older firmware, which is why it was given
+ *   3000 ms. A healthy FW 2.6.5 unit replies in ~23 ms, so this is headroom
+ *   rather than an expected latency.
+ * - `sys.rst` and `sys.dfu` reboot the device, so a reply may never arrive at
+ *   all. Their shorter budget makes the inevitable timeout quick; see
+ *   `Device#_fireAndForget`, which treats it as success.
+ *
+ * A caller-supplied `timeoutMs` always wins over these values.
+ */
+const COMMAND_TIMEOUTS_MS = Object.freeze({
+  'sys.fw': 3000,
+  'sys.rst': 1000,
+  'sys.dfu': 1000,
+});
+
+/**
+ * Delay between `sys.dfu` being accepted and the port being closed.
+ *
+ * The device needs time to detach and re-enumerate as a DFU device. Closing the
+ * port too eagerly can interrupt that, so the original application's 1200 ms
+ * settling period is preserved.
+ */
+const DFU_DETACH_DELAY_MS = 1200;
+
+/** Timeout for each protocol probe performed while opening a connection. */
+const DEFAULT_PROBE_TIMEOUT_MS = 2500;
+
 /** USB vendor ID of the STM32 CDC interface used by DWM V2 meters. */
 const DWM_USB_VENDOR_ID = '0483';
 
@@ -294,6 +328,9 @@ module.exports = {
   DEFAULT_TIMEOUT_MS,
   DEFAULT_PACING_MS,
   DEFAULT_POLL_INTERVAL_MS,
+  COMMAND_TIMEOUTS_MS,
+  DFU_DETACH_DELAY_MS,
+  DEFAULT_PROBE_TIMEOUT_MS,
   DWM_USB_VENDOR_ID,
   DWM_USB_PRODUCT_ID,
   DFU_USB_VENDOR_ID,

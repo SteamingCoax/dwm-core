@@ -35,6 +35,9 @@ const {
   DEFAULT_TIMEOUT_MS,
   DEFAULT_PACING_MS,
   DEFAULT_POLL_INTERVAL_MS,
+  COMMAND_TIMEOUTS_MS,
+  DFU_DETACH_DELAY_MS,
+  DEFAULT_PROBE_TIMEOUT_MS,
   LEGACY_FALLBACK_PATTERN,
   COMMANDS,
   CONFIG_KEYS,
@@ -197,7 +200,7 @@ class Device extends EventEmitter {
 
     const probeTimeoutMs = Number.isFinite(options.probeTimeoutMs)
       ? options.probeTimeoutMs
-      : 2500;
+      : DEFAULT_PROBE_TIMEOUT_MS;
 
     try {
       await this._probe(probeTimeoutMs);
@@ -495,9 +498,10 @@ class Device extends EventEmitter {
     if (!this.isOpen) throw new NotConnectedError();
 
     const requestId = String(this._nextRequestId++);
+    // Explicit override wins, then the command's own budget, then the default.
     const timeoutMs = Number.isFinite(options.timeoutMs)
       ? options.timeoutMs
-      : this.timeoutMs;
+      : COMMAND_TIMEOUTS_MS[command] || this.timeoutMs;
     const pacingMs = Number.isFinite(options.pacingMs)
       ? Math.max(0, options.pacingMs)
       : this.pacingMs;
@@ -660,12 +664,19 @@ class Device extends EventEmitter {
    *
    * @param {object} [options={}] Per-request overrides.
    * @param {boolean} [options.close=true] Whether to close the port afterwards.
+   * @param {number} [options.detachDelayMs=1200] How long to wait before
+   *   closing, giving the device time to re-enumerate in DFU mode.
    * @returns {Promise<boolean>} `true` when the command was accepted.
    */
   async enterDFU(options = {}) {
     const accepted = await this._fireAndForget(COMMANDS.SYSTEM_DFU, options);
     if (options.close !== false) {
-      await delay(200);
+      // Give the device time to detach and re-enumerate in DFU mode before the
+      // port disappears underneath it.
+      const settleMs = Number.isFinite(options.detachDelayMs)
+        ? Math.max(0, options.detachDelayMs)
+        : DFU_DETACH_DELAY_MS;
+      await delay(settleMs);
       await this.close();
     }
     return accepted;

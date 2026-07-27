@@ -227,6 +227,62 @@ that owns framing itself. If you want the full protocol handling, use `Device`.
 
 ---
 
+## Timing
+
+The meter is sensitive to how quickly it is written to, so the package owns all
+pacing and deadlines. These values are carried over from the original
+DWM-Control application rather than invented, and are exported so they can be
+inspected or overridden.
+
+| Constant | Value | Purpose |
+| --- | --- | --- |
+| `DEFAULT_PACING_MS` | 100 ms | Delay inserted **before every write** |
+| `DEFAULT_TIMEOUT_MS` | 2000 ms | Default per-request deadline |
+| `DEFAULT_POLL_INTERVAL_MS` | 250 ms | Monitoring poll interval |
+| `DEFAULT_PROBE_TIMEOUT_MS` | 2500 ms | Each protocol probe during `open()` |
+| `DFU_DETACH_DELAY_MS` | 1200 ms | Settling time after `sys.dfu` before closing |
+
+Some commands need their own budget (`COMMAND_TIMEOUTS_MS`):
+
+| Command | Timeout | Why |
+| --- | --- | --- |
+| `sys.fw` | 3000 ms | Can be slow to answer on older firmware |
+| `sys.rst` | 1000 ms | Reboots the device, so a reply may never arrive |
+| `sys.dfu` | 1000 ms | Same — the shorter budget fails fast on purpose |
+
+Precedence is: an explicit `timeoutMs` option → the command's own budget → the
+device default.
+
+Three behaviours matter more than the numbers:
+
+- **Requests are serialised.** Every command goes through one queue, so two
+  callers can never interleave writes on the same port. Concurrent `send()`
+  calls are safe and are correlated back by request id.
+- **Pacing is skipped for polling.** The monitoring loop issues `pwr.snap` with
+  `pacingMs: 0`; the poll interval already spaces those requests out, so adding
+  the 100 ms pacing on top would slow the achievable sample rate.
+- **Polling is start-aligned.** The next poll is scheduled `intervalMs` after
+  the current one *started*, not after it finished, so a slow response cannot
+  make the interval drift. If a cycle overruns, the next fires immediately.
+
+Everything is adjustable per device or per request:
+
+```js
+const device = new Device(info, {
+  pacingMs: 50,        // write more aggressively
+  timeoutMs: 5000,     // tolerate a slow link
+  pollIntervalMs: 100, // sample faster
+});
+
+await device.getPower('avg', { timeoutMs: 250, pacingMs: 0 });
+```
+
+> A timed-out request triggers the legacy proto=1 retry, so the **worst-case**
+> latency of a `send()` is roughly twice its timeout. Pass
+> `allowLegacyFallback: false` when that matters.
+
+---
+
 ## Protocol v1 / v2
 
 The package speaks **v2 by default and falls back to v1 automatically** when a

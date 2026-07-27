@@ -22,6 +22,7 @@ if (!liveOnly) {
   require('./protocol.test');
   require('./serial.test');
   require('./firmware.test');
+  require('./timing.test');
 }
 
 if (!unitOnly) {

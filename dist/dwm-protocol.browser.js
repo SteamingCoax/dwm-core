@@ -345,6 +345,13 @@ var DWMProtocol = (() => {
       var DEFAULT_TIMEOUT_MS = 2e3;
       var DEFAULT_PACING_MS = 100;
       var DEFAULT_POLL_INTERVAL_MS = 250;
+      var COMMAND_TIMEOUTS_MS = Object.freeze({
+        "sys.fw": 3e3,
+        "sys.rst": 1e3,
+        "sys.dfu": 1e3
+      });
+      var DFU_DETACH_DELAY_MS = 1200;
+      var DEFAULT_PROBE_TIMEOUT_MS = 2500;
       var DWM_USB_VENDOR_ID = "0483";
       var DWM_USB_PRODUCT_ID = "5740";
       var DFU_USB_VENDOR_ID = "0483";
@@ -480,6 +487,9 @@ var DWMProtocol = (() => {
         DEFAULT_TIMEOUT_MS,
         DEFAULT_PACING_MS,
         DEFAULT_POLL_INTERVAL_MS,
+        COMMAND_TIMEOUTS_MS,
+        DFU_DETACH_DELAY_MS,
+        DEFAULT_PROBE_TIMEOUT_MS,
         DWM_USB_VENDOR_ID,
         DWM_USB_PRODUCT_ID,
         DFU_USB_VENDOR_ID,
