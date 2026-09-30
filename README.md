@@ -78,7 +78,7 @@ node examples/basic-cli.js 5
 ```js
 const { findDevices, listPorts } = require('dwm-core');
 
-const devices = await findDevices();  // DWM devices only (VID 0483 / PID 5740)
+const devices = await findDevices();  // DWM devices only (VID 0483, PID 5740 or A59C)
 const all     = await listPorts();    // every serial port on the system
 ```
 
