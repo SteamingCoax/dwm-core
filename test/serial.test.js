@@ -41,6 +41,39 @@ describe('serial: device identification', ({ test }) => {
     );
   });
 
+  test('matches the product ID ST assigned to the DWM V2 (A59C) as well as 5740', () => {
+    assert.strictEqual(serial.isDwmPort({ vendorId: '0483', productId: 'a59c' }), true);
+    assert.strictEqual(serial.isDwmPort({ vendorId: '0x0483', productId: '0xA59C' }), true);
+    assert.strictEqual(
+      serial.isDwmPort({ pnpId: 'USB\\VID_0483&PID_A59C\\205F33AE5442' }),
+      true,
+    );
+    assert.strictEqual(serial.isDwmPort({ vendorId: '0483', productId: 'a59d' }), false);
+    assert.strictEqual(serial.isDwmPort({ vendorId: '1234', productId: 'a59c' }), false);
+  });
+
+  test('matches the Linux pnpId product string independent of PID', () => {
+    // Real Linux listing: manufacturer is the USB vendor string, not the product string.
+    assert.strictEqual(
+      serial.isDwmPort({
+        path: '/dev/ttyACM0',
+        manufacturer: 'STMicroelectronics',
+        pnpId: 'usb-STMicroelectronics_DWM_V2_ComPort_205F33AE5442-if00',
+      }),
+      true,
+    );
+    assert.strictEqual(
+      serial.isDwmPort({
+        path: '/dev/ttyACM1',
+        manufacturer: 'STMicroelectronics',
+        pnpId: 'usb-STMicroelectronics_STM32_Virtual_ComPort_1234-if00',
+        vendorId: '0483',
+        productId: '5741',
+      }),
+      false,
+    );
+  });
+
   test('rejects unrelated and empty ports', () => {
     assert.strictEqual(serial.isDwmPort({ path: '/dev/tty.Bluetooth' }), false);
     assert.strictEqual(serial.isDwmPort({}), false);

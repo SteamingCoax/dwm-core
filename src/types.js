@@ -76,8 +76,20 @@ const DEFAULT_PROBE_TIMEOUT_MS = 2500;
 /** USB vendor ID of the STM32 CDC interface used by DWM V2 meters. */
 const DWM_USB_VENDOR_ID = '0483';
 
-/** USB product ID of the DWM V2 CDC (application/run) interface. */
+/**
+ * USB product ID of the DWM V2 CDC (application/run) interface on firmware
+ * released before ST assigned the meter its own PID (ST's generic CDC PID).
+ */
 const DWM_USB_PRODUCT_ID = '5740';
+
+/** USB product ID assigned by STMicroelectronics to the DWM V2. */
+const DWM_USB_ASSIGNED_PRODUCT_ID = 'A59C';
+
+/**
+ * Every USB product ID a DWM V2 may present in normal operation, oldest first.
+ * All are under {@link DWM_USB_VENDOR_ID}.
+ */
+const DWM_USB_PRODUCT_IDS = Object.freeze([DWM_USB_PRODUCT_ID, DWM_USB_ASSIGNED_PRODUCT_ID]);
 
 /** USB vendor ID presented while the device is in DFU mode. */
 const DFU_USB_VENDOR_ID = '0483';
@@ -333,6 +345,8 @@ module.exports = {
   DEFAULT_PROBE_TIMEOUT_MS,
   DWM_USB_VENDOR_ID,
   DWM_USB_PRODUCT_ID,
+  DWM_USB_ASSIGNED_PRODUCT_ID,
+  DWM_USB_PRODUCT_IDS,
   DFU_USB_VENDOR_ID,
   DFU_USB_PRODUCT_ID,
   STM32_FLASH_BASE_ADDRESS,

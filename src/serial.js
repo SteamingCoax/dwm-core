@@ -25,7 +25,7 @@ const { SerialPort } = require('serialport');
 const {
   DEFAULT_BAUD_RATE,
   DWM_USB_VENDOR_ID,
-  DWM_USB_PRODUCT_ID,
+  DWM_USB_PRODUCT_IDS,
   SerialError,
 } = require('./types');
 const { decodeSerialBuffer } = require('./utils');
@@ -45,37 +45,40 @@ function parseUsbModemUid(portPath) {
 /**
  * Reports whether a listed serial port is a DWM V2 meter.
  *
- * Four independent checks are applied, in decreasing order of confidence:
+ * Three independent checks are applied, in decreasing order of confidence:
  *
- * 1. The USB product string contains `dwm v2` (set by all DWM V2 firmware and
- *    surfaced by `serialport` in `manufacturer` on every platform).
- * 2. The Windows friendly name contains `dwm v2`.
- * 3. `vendorId` is `0483` **and** `productId` is `5740`. Both are required, so
- *    unrelated STM32 CDC devices are not misidentified.
- * 4. The Windows `pnpId` contains both `VID_0483` and `PID_5740`, covering the
+ * 1. The USB product string `DWM V2 ComPort`, set by every DWM V2 firmware
+ *    regardless of PID. Where `serialport` surfaces it depends on the platform:
+ *    Linux embeds it in `pnpId` (`usb-STMicroelectronics_DWM_V2_ComPort_<sn>-if00`),
+ *    Windows may carry it in `friendlyName`, some builds report it in
+ *    `manufacturer`. macOS exposes no product string at all.
+ * 2. `vendorId` is `0483` **and** `productId` is one of
+ *    {@link DWM_USB_PRODUCT_IDS} (`5740` on older firmware, `A59C` assigned by
+ *    ST). Both are required, so unrelated STM32 CDC devices are not claimed.
+ * 3. The Windows `pnpId` contains `VID_0483` and one of those PIDs, covering the
  *    case where the id fields are unpopulated.
  *
  * @param {import('./types').SerialPortInfo} port Port descriptor from {@link listPorts}.
  * @returns {boolean}
  */
 function isDwmPort(port) {
-  const manufacturer = (port?.manufacturer || '').toLowerCase();
-  if (manufacturer.includes('dwm v2')) return true;
-
-  const friendlyName = (port?.friendlyName || '').toLowerCase();
-  if (friendlyName.includes('dwm v2')) return true;
+  const hasProductString = (value) => /dwm[ _]v2/i.test(String(value || ''));
+  if (hasProductString(port?.manufacturer)) return true;
+  if (hasProductString(port?.friendlyName)) return true;
+  if (hasProductString(port?.pnpId)) return true;
 
   const vendorId = (port?.vendorId || '').toLowerCase().replace(/^0x/, '');
   const productId = (port?.productId || '').toLowerCase().replace(/^0x/, '');
   if (
     vendorId === DWM_USB_VENDOR_ID.toLowerCase() &&
-    productId === DWM_USB_PRODUCT_ID.toLowerCase()
+    DWM_USB_PRODUCT_IDS.some((id) => id.toLowerCase() === productId)
   ) {
     return true;
   }
 
   const pnpId = port?.pnpId || '';
-  if (/VID_0483/i.test(pnpId) && /PID_5740/i.test(pnpId)) return true;
+  const pidPattern = new RegExp(`PID_(${DWM_USB_PRODUCT_IDS.join('|')})`, 'i');
+  if (/VID_0483/i.test(pnpId) && pidPattern.test(pnpId)) return true;
 
   return false;
 }
