@@ -483,20 +483,41 @@ class FirmwareUpdater extends EventEmitter {
    *   binary image rather than HEX text.
    * @param {boolean} [options.reboot=true] Append `:leave` and `-R` so the device
    *   restarts into the new firmware.
+   * @param {string} [options.serial] Flash only the DFU device with this serial
+   *   number (see {@link FirmwareUpdater#buildUploadArgs}).
    * @returns {Promise<{success: boolean, output: string, size: number, error?: string}>}
    * @throws {FirmwareError} When the image cannot be prepared.
    */
+  /**
+   * Builds the `dfu-util` argument list for an upload.
+   *
+   * @param {string} binPath Prepared raw image.
+   * @param {object} [options={}]
+   * @param {boolean} [options.reboot=true] Append `:leave` and `-R`.
+   * @param {string} [options.serial] Only flash the DFU device with this USB
+   *   serial number (`-S`), as reported by {@link listDfuDevices}. Ignored when
+   *   empty or `"unknown"`, so callers can pass a device record unconditionally.
+   * @returns {string[]} Arguments for `dfu-util`.
+   */
+  buildUploadArgs(binPath, options = {}) {
+    const target = options.reboot === false
+      ? `0x${this.flashAddress.toString(16).padStart(8, '0')}`
+      : `0x${this.flashAddress.toString(16).padStart(8, '0')}:leave`;
+
+    const args = ['-a', '0', '-i', '0'];
+    const serial = typeof options.serial === 'string' ? options.serial.trim() : '';
+    if (serial && serial.toLowerCase() !== 'unknown') args.push('-S', serial);
+    args.push('-D', binPath, '-s', target);
+    if (options.reboot !== false) args.push('-R');
+    return args;
+  }
+
   async upload(hexPathOrBuffer, options = {}) {
     const binPath = await this._prepareImage(hexPathOrBuffer, options);
     const size = (await fs.promises.stat(binPath)).size;
     const command = this.resolveCommand();
 
-    const target = options.reboot === false
-      ? `0x${this.flashAddress.toString(16).padStart(8, '0')}`
-      : `0x${this.flashAddress.toString(16).padStart(8, '0')}:leave`;
-
-    const args = ['-a', '0', '-i', '0', '-D', binPath, '-s', target];
-    if (options.reboot !== false) args.push('-R');
+    const args = this.buildUploadArgs(binPath, options);
 
     const onOutput = (text) => {
       /**

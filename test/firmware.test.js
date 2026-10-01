@@ -234,6 +234,36 @@ describe('firmware: updater', ({ test }) => {
     assert.strictEqual(updater._parseProgress('no percentage here'), null);
   });
 
+  test('builds dfu-util arguments without a serial filter by default', () => {
+    const updater = new firmware.FirmwareUpdater();
+    assert.deepStrictEqual(updater.buildUploadArgs('/tmp/fw.bin'), [
+      '-a', '0', '-i', '0', '-D', '/tmp/fw.bin', '-s', '0x08000000:leave', '-R',
+    ]);
+  });
+
+  test('targets one DFU device with -S when a serial is given', () => {
+    const updater = new firmware.FirmwareUpdater();
+    const args = updater.buildUploadArgs('/tmp/fw.bin', { serial: '208834704E43' });
+    assert.deepStrictEqual(args.slice(0, 6), ['-a', '0', '-i', '0', '-S', '208834704E43']);
+    assert.ok(args.includes('-R'));
+  });
+
+  test('ignores an empty or unknown serial so device records can be passed as-is', () => {
+    const updater = new firmware.FirmwareUpdater();
+    for (const serial of ['', '   ', 'unknown', 'UNKNOWN', undefined, null, 42]) {
+      assert.ok(!updater.buildUploadArgs('/tmp/fw.bin', { serial }).includes('-S'), String(serial));
+    }
+  });
+
+  test('omits :leave and -R when reboot is false', () => {
+    const updater = new firmware.FirmwareUpdater();
+    const args = updater.buildUploadArgs('/tmp/fw.bin', { reboot: false, serial: 'ABC' });
+    assert.ok(args.includes('0x08000000'));
+    assert.ok(!args.includes('0x08000000:leave'));
+    assert.ok(!args.includes('-R'));
+    assert.ok(args.includes('-S'));
+  });
+
   test('rejects an unusable firmware source', async () => {
     const updater = new firmware.FirmwareUpdater();
     await assert.rejects(() => updater.upload(null), /file path or a Buffer/);
