@@ -42,7 +42,7 @@ describe('live device: discovery', ({ test }) => {
   test('reports the expected USB identity', async () => {
     const [device] = await findDevices();
     assert.strictEqual(device.vendorId.toLowerCase(), '0483');
-    assert.strictEqual(device.productId.toLowerCase(), '5740');
+    assert.ok(['5740', 'a59c'].includes(device.productId.toLowerCase()));
   });
 
   test('assigns a stable identity key', async () => {

@@ -52,6 +52,26 @@ describe('serial: device identification', ({ test }) => {
     assert.strictEqual(serial.isDwmPort({ vendorId: '1234', productId: 'a59c' }), false);
   });
 
+  test('matches the COAXON-branded firmware (new PID, new manufacturer string)', () => {
+    assert.strictEqual(
+      serial.isDwmPort({
+        path: '/dev/ttyACM0',
+        manufacturer: 'COAXON Systems Inc.',
+        pnpId: 'usb-COAXON_Systems_Inc._DWM_V2_ComPort_205F33AE5442-if00',
+        vendorId: '0483',
+        productId: 'a59c',
+      }),
+      true,
+    );
+    // macOS: no product string, so VID/PID alone must be enough.
+    assert.strictEqual(
+      serial.isDwmPort({ manufacturer: 'COAXON Systems Inc.', vendorId: '0483', productId: 'A59C' }),
+      true,
+    );
+    // The manufacturer string is not used for matching on its own.
+    assert.strictEqual(serial.isDwmPort({ manufacturer: 'COAXON Systems Inc.' }), false);
+  });
+
   test('matches the Linux pnpId product string independent of PID', () => {
     // Real Linux listing: manufacturer is the USB vendor string, not the product string.
     assert.strictEqual(

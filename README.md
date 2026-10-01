@@ -90,9 +90,9 @@ OS hands it a different `/dev/tty*` or `COM` path.
 {
   path: '/dev/tty.usbmodem205F33AE54421',
   key: 'usbmodem:205F33AE54421',
-  manufacturer: 'STMicroelectronics',
+  manufacturer: 'COAXON Systems Inc.',
   vendorId: '0483',
-  productId: '5740'
+  productId: 'A59C'
 }
 ```
 
@@ -357,6 +357,24 @@ const { data, startAddress } = parseHex(hexBuffer);
 > is correctly reported as a failure instead of a successful upload.
 
 ---
+
+## DFU round-trip test (hardware)
+
+`scripts/dfu-roundtrip.js` checks that the meter restarts into the application by
+itself after a DFU update: `sys.fw` (before), `sys.dfu`, wait for `0483:df11`,
+flash with `:leave` and `-R`, wait for the CDC port to return, `sys.fw` (after)
+and compare. It prints timestamped steps and a final one-line JSON summary, and
+exits 0 on PASS, 1 on FAIL, 2 on a usage error.
+
+```sh
+node scripts/dfu-roundtrip.js --bin path/to/firmware.bin \
+  [--port <path>] [--serial <usb serial>] [--expect-fver "FW: 2.6.5"] \
+  [--dfu-timeout 15] [--return-timeout 20] [--repeat 5]
+```
+
+Without `--expect-fver`, a `FW: x.y.z` string embedded in the `.bin` is compared
+instead. Requires `dfu-util` on `PATH`. This script touches real hardware and is
+not part of `npm test`.
 
 ## Errors
 

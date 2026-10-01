@@ -23,6 +23,7 @@ if (!liveOnly) {
   require('./serial.test');
   require('./firmware.test');
   require('./timing.test');
+  require('./dfu-roundtrip.test');
 }
 
 if (!unitOnly) {
